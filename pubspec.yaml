@@ -1,5 +1,5 @@
 name: story_editor_pro
-description: "Instagram-style story editor with camera, filters, drawing tools, text overlays, boomerang effects, and close friends sharing."
+description: "A powerful story editor with camera, boomerang effects, drawing tools, text overlays, collages, and close friends sharing."
 version: 1.0.0
 homepage: https://github.com/ahmetbalkan/story_editor_pro
 repository: https://github.com/ahmetbalkan/story_editor_pro
@@ -9,8 +9,8 @@ topics:
   - camera
   - story
   - editor
-  - instagram
-  - media
+  - boomerang
+  - video
 
 environment:
   sdk: ^3.8.1
