@@ -1847,12 +1847,31 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                   bottom: false,
                   child: Column(
                     children: [
-                      // Top bar - only Done button
+                      // Top bar - Close and Done buttons
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            // Close button (X) - cancel and go back to editor
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                            // Done button - save text
                             GestureDetector(
                               onTap: () {
                                 if (controller.text.isNotEmpty) {
