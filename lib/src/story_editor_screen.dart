@@ -57,6 +57,9 @@ class StoryEditorScreen extends StatefulWidget {
   /// Returns true if close friends list is not empty
   bool get closeFriendsEnabled => closeFriendsList.isNotEmpty;
 
+  /// User's profile image URL for "Your Story" section
+  final String? userProfileImageUrl;
+
   /// Callback when story is shared (returns StoryShareResult with file and selected friends)
   final Function(StoryShareResult result)? onShare;
 
@@ -69,6 +72,7 @@ class StoryEditorScreen extends StatefulWidget {
     this.initialTextOverlay,
     this.initialImageOverlay,
     this.closeFriendsList = const [],
+    this.userProfileImageUrl,
     this.onShare,
   }) : mediaPath = imagePath;
 
@@ -1013,7 +1017,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Row(
                       children: [
-                        // Profile picture placeholder
+                        // Profile picture
                         Container(
                           width: 56,
                           height: 56,
@@ -1026,23 +1030,18 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(2),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.grey.shade800,
-                              ),
-                              child: Center(
-                                child: SvgPicture.asset(
-                                  'packages/story_editor_pro/assets/icons/profile-circle.svg',
-                                  width: 32,
-                                  height: 32,
-                                  colorFilter: const ColorFilter.mode(
-                                    Colors.white54,
-                                    BlendMode.srcIn,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            child: widget.userProfileImageUrl != null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      widget.userProfileImageUrl!,
+                                      width: 48,
+                                      height: 48,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          _buildDefaultProfileIcon(),
+                                    ),
+                                  )
+                                : _buildDefaultProfileIcon(),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -2382,6 +2381,27 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     if (mounted) {
       setState(() => _isSaving = false);
     }
+  }
+
+  /// Default profile icon when no image URL is provided
+  Widget _buildDefaultProfileIcon() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.grey.shade800,
+      ),
+      child: Center(
+        child: SvgPicture.asset(
+          'packages/story_editor_pro/assets/icons/profile-circle.svg',
+          width: 32,
+          height: 32,
+          colorFilter: const ColorFilter.mode(
+            Colors.white54,
+            BlendMode.srcIn,
+          ),
+        ),
+      ),
+    );
   }
 
   /// Show saved modal - closes after configured delay

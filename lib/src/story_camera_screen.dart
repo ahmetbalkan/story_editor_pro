@@ -79,6 +79,9 @@ class StoryCameraScreen extends StatefulWidget {
   /// Returns true if close friends list is not empty
   bool get closeFriendsEnabled => closeFriendsList.isNotEmpty;
 
+  /// User's profile image URL for "Your Story" section in share bottomsheet
+  final String? userProfileImageUrl;
+
   const StoryCameraScreen({
     super.key,
     this.onImageCaptured,
@@ -86,6 +89,7 @@ class StoryCameraScreen extends StatefulWidget {
     this.primaryColor,
     this.showEditor = true,
     this.closeFriendsList = const [],
+    this.userProfileImageUrl,
   });
 
   @override
@@ -574,6 +578,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                       isFromGallery: true,
                       initialTextOverlay: pendingOverlay,
                       closeFriendsList: widget.closeFriendsList,
+                      userProfileImageUrl: widget.userProfileImageUrl,
                       onShare: widget.onStoryShare,
                     ),
                   ),
@@ -642,6 +647,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                   primaryColor: widget.primaryColor,
                   initialTextOverlay: pendingOverlay,
                   closeFriendsList: widget.closeFriendsList,
+                  userProfileImageUrl: widget.userProfileImageUrl,
                   onShare: widget.onStoryShare,
                 ),
               ),
@@ -857,6 +863,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 primaryColor: widget.primaryColor,
                 initialTextOverlay: pendingOverlay,
                 closeFriendsList: widget.closeFriendsList,
+                userProfileImageUrl: widget.userProfileImageUrl,
                 onShare: widget.onStoryShare,
               ),
             ),
@@ -1169,6 +1176,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 mediaType: MediaType.video,
                 primaryColor: widget.primaryColor,
                 closeFriendsList: widget.closeFriendsList,
+                userProfileImageUrl: widget.userProfileImageUrl,
                 onShare: widget.onStoryShare,
               ),
             ),
@@ -1347,6 +1355,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 mediaType: MediaType.video,
                 primaryColor: widget.primaryColor,
                 closeFriendsList: widget.closeFriendsList,
+                userProfileImageUrl: widget.userProfileImageUrl,
                 onShare: widget.onStoryShare,
               ),
             ),
@@ -1561,6 +1570,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 mediaType: MediaType.video,
                 primaryColor: widget.primaryColor,
                 closeFriendsList: widget.closeFriendsList,
+                userProfileImageUrl: widget.userProfileImageUrl,
                 onShare: widget.onStoryShare,
               ),
             ),
@@ -3200,6 +3210,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                     imagePath: bgImagePath,
                     primaryColor: widget.primaryColor,
                     closeFriendsList: widget.closeFriendsList,
+                    userProfileImageUrl: widget.userProfileImageUrl,
                     onShare: widget.onStoryShare,
                     // Send text as TextOverlay (movable, editable)
                     // offset: Offset.zero - will be auto centered on editor side

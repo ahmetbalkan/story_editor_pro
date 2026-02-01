@@ -516,8 +516,14 @@ class _HomePageState extends State<HomePage> {
           },
 
           // ═══════════════════════════════════════════════════════════════
+          // USER PROFILE - Shown in "Your Story" section of share bottomsheet
+          // ═══════════════════════════════════════════════════════════════
+          userProfileImageUrl: 'https://i.pravatar.cc/150?img=68',
+
+          // ═══════════════════════════════════════════════════════════════
           // CLOSE FRIENDS - If list is not empty, close friends feature is enabled
           // If empty list or not provided, share bottomsheet will be skipped
+          // All close friends are selected by default
           // ═══════════════════════════════════════════════════════════════
           closeFriendsList: const [
             CloseFriend(
