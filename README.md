@@ -5,6 +5,8 @@
 
 A powerful, fully customizable Instagram-style story editor for Flutter. Create stunning stories with camera capture, drawing tools, text overlays, boomerang effects, collages, and close friends sharing.
 
+> **Note:** This package was built with minimal dependencies in mind. I chose well-maintained packages that are unlikely to be deprecated and implemented video processing natively (Android: MediaCodec + MediaMuxer, iOS: AVAssetReader + AVAssetWriter) to avoid heavy FFmpeg dependencies. I hope this is useful for your projects. Looking forward to your feedback. Thank you!
+
 ## Features
 
 | Feature | Description |
@@ -504,10 +506,14 @@ StoryEditorGradients(
 
 ---
 
-## StoryEditorConfig - Timing Settings
+## StoryEditorConfig - All Settings
 
 ```dart
 StoryEditorConfig(
+  // ═══════════════════════════════════════════════════════════════════════
+  // TIMING SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════
+
   // Hands-free delay options shown in UI (seconds)
   handsFreeDelayOptions: [3, 5, 10, 15],
 
@@ -526,6 +532,59 @@ StoryEditorConfig(
   // Default gradient balance (0.0 to 1.0)
   // 0.5 = 50%/50% color distribution
   defaultGradientBalance: 0.5,
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BOOMERANG SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Output FPS (lower = slower playback, higher = faster)
+  // Range: 10-30 recommended, default: 15 for smooth slow-motion
+  boomerangFps: 15,
+
+  // Number of loops (forward + backward = 1 loop)
+  // Instagram uses 3 loops
+  boomerangLoopCount: 3,
+
+  // Boomerang button gradient colors
+  boomerangGradientColors: [Color(0xFFFF6B35), Color(0xFFFF1744)],
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UI SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Recording indicator color (default: Instagram red)
+  recordingIndicatorColor: Color(0xFFFF3B30),
+
+  // Story canvas dimensions for export
+  storyCanvasWidth: 1080,
+  storyCanvasHeight: 1920,
+
+  // Screen breakpoint for responsive UI
+  smallScreenBreakpoint: 700,
+
+  // Shutter button sizes
+  shutterButtonSizeLarge: 90,   // Large screens
+  shutterButtonSizeSmall: 70,   // Small screens
+
+  // Gallery pagination
+  galleryPageSize: 50,
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ANIMATION SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Default animation duration for UI transitions
+  animationDuration: Duration(milliseconds: 200),
+
+  // Auto-close delay for "Saved" modal
+  savedModalAutoCloseDelay: Duration(seconds: 3),
+
+  // Gallery thumbnail settings
+  thumbnailSize: 200,
+  thumbnailQuality: 80,  // 1-100
+
+  // Recording indicator pulse animation scale
+  pulseAnimationScale: 1.15,
 )
 ```
 
@@ -592,14 +651,21 @@ flutter run
 
 ## Dependencies
 
-- `camera` - Camera access
-- `video_player` - Video playback
-- `ffmpeg_kit_flutter_new` - Video processing
-- `photo_manager` - Gallery access
-- `permission_handler` - Permissions
-- `path_provider` - File storage
-- `shared_preferences` - Settings
-- `flutter_svg` - SVG icons
+This package uses minimal, well-maintained dependencies:
+
+| Package | Purpose |
+|---------|---------|
+| `camera` | Camera access and capture |
+| `video_player` | Video playback |
+| `photo_manager` | Gallery access |
+| `permission_handler` | Runtime permissions |
+| `path_provider` | File storage paths |
+| `shared_preferences` | User preferences |
+| `flutter_svg` | SVG icon support |
+
+**No FFmpeg!** Boomerang video processing is implemented natively:
+- **Android:** MediaCodec + MediaMuxer
+- **iOS:** AVAssetReader + AVAssetWriter
 
 ## License
 

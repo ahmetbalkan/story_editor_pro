@@ -367,6 +367,9 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   }
 
   Future<void> _loadLastGalleryImage() async {
+    // Get config before async operations to avoid BuildContext across async gaps
+    final config = context.storyEditorConfig;
+
     try {
       // Gallery permission check
       final PermissionState permission =
@@ -429,8 +432,8 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
           try {
             // Get thumbnail (more reliable)
             final Uint8List? thumbData = await asset.thumbnailDataWithSize(
-              const ThumbnailSize(200, 200),
-              quality: 80,
+              ThumbnailSize(config.thumbnailSize, config.thumbnailSize),
+              quality: config.thumbnailQuality,
             );
 
             if (thumbData != null && mounted) {
@@ -1381,6 +1384,9 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   }) async {
     debugPrint('Creating boomerang effect from video: $videoPath');
 
+    // Get config before async operations
+    final config = context.storyEditorConfig;
+
     try {
       final inputFile = File(videoPath);
       if (!await inputFile.exists()) {
@@ -1399,8 +1405,8 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
       final result = await channel.invokeMethod<String>('createBoomerang', {
         'inputPath': videoPath,
         'outputPath': outputPath,
-        'loopCount': 3,
-        'fps': 30,
+        'loopCount': config.boomerangLoopCount,
+        'fps': config.boomerangFps,
       });
 
       if (result != null) {
@@ -2370,8 +2376,9 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
       captureButton = _buildNormalCaptureButton();
     }
 
+    final config = context.storyEditorConfig;
     final screenHeight = MediaQuery.of(context).size.height;
-    final bottomOffset = screenHeight < 700 ? 10.0 : 20.0;
+    final bottomOffset = screenHeight < config.smallScreenBreakpoint ? 10.0 : 20.0;
 
     return Positioned(
       left: 0,
@@ -2420,10 +2427,13 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
   /// Photo/video button for normal mode - with duration indicator and progress
   Widget _buildNormalCaptureButton() {
+    final config = context.storyEditorConfig;
     final screenHeight = MediaQuery.of(context).size.height;
-    final double size = screenHeight < 700 ? 70 : 90; // 70 on small screen, 90 on large
-    final double strokeWidth = screenHeight < 700 ? 4 : 6;
-    const Color recordingColor = Color(0xFFFF3B30); // Red
+    final double size = screenHeight < config.smallScreenBreakpoint
+        ? config.shutterButtonSizeSmall
+        : config.shutterButtonSizeLarge;
+    final double strokeWidth = screenHeight < config.smallScreenBreakpoint ? 4 : 6;
+    final Color recordingColor = config.recordingIndicatorColor;
 
     // Video recording progress (0.0 - 1.0)
     final videoProgress = _videoRecordingElapsedMs / (_videoMaxSeconds * 1000);
@@ -2536,9 +2546,10 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
   /// Special capture button for hands-free - same appearance as video recording
   Widget _buildHandsFreeCaptureButton() {
-    const double size = 90;
+    final config = context.storyEditorConfig;
+    final double size = config.shutterButtonSizeLarge;
     const double strokeWidth = 6;
-    const Color recordingColor = Color(0xFFFF3B30); // Red
+    final Color recordingColor = config.recordingIndicatorColor;
 
     // Video recording progress (0.0 - 1.0)
     final videoProgress =
@@ -3071,10 +3082,11 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
   /// Tool buttons on the right side - for Column structure
   Widget _buildSideToolsColumn() {
+    final config = context.storyEditorConfig;
     final screenHeight = MediaQuery.of(context).size.height;
     // Less spacing on small screens, more on large screens
     final bottomOffset = screenHeight * 0.15; // 15% of screen
-    final itemSpacing = screenHeight < 700 ? 8.0 : 16.0; // 8 on small screen, 16 on large
+    final itemSpacing = screenHeight < config.smallScreenBreakpoint ? 8.0 : 16.0;
 
     // Hide during recording or processing
     final shouldHide = _isProcessingVideo || _isLayoutProcessing || _isHandsFreeCountingDown ||
@@ -3110,15 +3122,12 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
   /// Boomerang button
   Widget _buildBoomerangButton() {
-    // Instagram Boomerang gradient
-    const boomerangGradient = LinearGradient(
+    final config = context.storyEditorConfig;
+    // Instagram Boomerang gradient - uses config colors
+    final boomerangGradient = LinearGradient(
       begin: Alignment.topRight,
       end: Alignment.bottomLeft,
-      colors: [
-        Color(0xFFF77737), // Orange
-        Color(0xFFE1306C), // Pink
-        Color(0xFFC13584), // Dark pink
-      ],
+      colors: config.boomerangGradientColors,
     );
 
     return GestureDetector(
@@ -3580,7 +3589,7 @@ class _GalleryPickerPageState extends State<_GalleryPickerPage> {
   final List<AssetEntity> _assets = [];
   bool _isLoading = true;
   int _currentPage = 0;
-  static const int _pageSize = 50;
+  int _pageSize = 50; // Will be updated from config in initState
 
   @override
   void initState() {
@@ -3588,10 +3597,17 @@ class _GalleryPickerPageState extends State<_GalleryPickerPage> {
     _loadAssets();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _pageSize = context.storyEditorConfig.galleryPageSize;
+  }
+
   Future<void> _loadAssets() async {
+    final pageSize = _pageSize;
     final assets = await widget.album.getAssetListPaged(
       page: _currentPage,
-      size: _pageSize,
+      size: pageSize,
     );
 
     if (mounted) {
@@ -3608,9 +3624,10 @@ class _GalleryPickerPageState extends State<_GalleryPickerPage> {
     setState(() => _isLoading = true);
     _currentPage++;
 
+    final pageSize = context.storyEditorConfig.galleryPageSize;
     final assets = await widget.album.getAssetListPaged(
       page: _currentPage,
-      size: _pageSize,
+      size: pageSize,
     );
 
     if (mounted) {
@@ -3690,9 +3707,10 @@ class _GalleryThumbnailState extends State<_GalleryThumbnail> {
 
   Future<void> _loadThumbnail() async {
     try {
+      final config = context.storyEditorConfig;
       final data = await widget.asset.thumbnailDataWithSize(
-        const ThumbnailSize(200, 200),
-        quality: 80,
+        ThumbnailSize(config.thumbnailSize, config.thumbnailSize),
+        quality: config.thumbnailQuality,
       );
 
       if (mounted && data != null) {

@@ -571,9 +571,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   /// Create PNG image with gradient background + centered text
   Future<String?> _createGradientTextImage(String text, LinearGradient gradient) async {
     try {
-      // Canvas size (1080x1920 story format)
-      const int canvasWidth = 1080;
-      const int canvasHeight = 1920;
+      // Canvas size from config (story format)
+      final config = context.storyEditorConfig;
+      final int canvasWidth = config.storyCanvasWidth;
+      final int canvasHeight = config.storyCanvasHeight;
 
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
@@ -2383,7 +2384,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     }
   }
 
-  /// Show saved modal - closes after 3 seconds
+  /// Show saved modal - closes after configured delay
   void _showSavedModal() {
     final config = context.storyEditorConfig;
 
@@ -2392,8 +2393,8 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       barrierColor: Colors.transparent,
       barrierDismissible: true,
       builder: (dialogContext) {
-        // Auto close after 3 seconds
-        Future.delayed(const Duration(seconds: 3), () {
+        // Auto close after configured delay
+        Future.delayed(config.savedModalAutoCloseDelay, () {
           if (Navigator.of(dialogContext).canPop()) {
             Navigator.of(dialogContext).pop();
           }

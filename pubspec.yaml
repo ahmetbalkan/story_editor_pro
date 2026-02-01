@@ -1,9 +1,9 @@
 name: story_editor_pro
 description: "Instagram-style story editor with camera, filters, drawing tools, text overlays, boomerang effects, and close friends sharing."
 version: 1.0.0
-homepage: https://github.com/yourusername/story_editor_pro
-repository: https://github.com/yourusername/story_editor_pro
-issue_tracker: https://github.com/yourusername/story_editor_pro/issues
+homepage: https://github.com/ahmetbalkan/story_editor_pro
+repository: https://github.com/ahmetbalkan/story_editor_pro
+issue_tracker: https://github.com/ahmetbalkan/story_editor_pro/issues
 
 topics:
   - camera
@@ -21,7 +21,6 @@ dependencies:
     sdk: flutter
   flutter_svg: ^2.0.10+1
   video_player: ^2.8.6
-  easy_video_editor: ^0.0.4
   path_provider: ^2.1.2
   camera: ^0.11.0+2
   permission_handler: ^11.3.1
