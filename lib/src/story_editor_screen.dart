@@ -238,9 +238,21 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   Widget build(BuildContext context) {
     final statusBarHeight = MediaQuery.of(context).viewPadding.top;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Column(
+    return PopScope(
+      canPop: !_isDrawing && !_isTextEditing,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // If drawing or text editing, just close that mode
+          if (_isDrawing) {
+            setState(() => _isDrawing = false);
+          } else if (_isTextEditing) {
+            setState(() => _isTextEditing = false);
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Column(
         children: [
           // Status bar area - black
           Container(
@@ -307,6 +319,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
