@@ -38,7 +38,7 @@ A powerful, fully customizable Instagram-style story editor for Flutter. Create 
 
 ```yaml
 dependencies:
-  story_editor_pro: ^1.0.0
+  story_editor_pro: ^1.0.1
 ```
 
 ### Android Setup
