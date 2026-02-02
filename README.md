@@ -13,7 +13,7 @@ A powerful, fully customizable Instagram-style story editor for Flutter. Create 
 <tr>
 <td width="300">
 
-<img src="[https://raw.githubusercontent.com/ahmetbalkan/story_editor_pro/refs/heads/main/story_editor_pro_gif.gif](https://raw.githubusercontent.com/ahmetbalkan/story_editor_pro/refs/heads/main/story_editor_pro_gif.gif?token=GHSAT0AAAAAADUN664G4NQKKPWB5QNEHS7A2L77N5Q)" width="280" alt="Story Editor Pro Demo"/>
+<img src="https://raw.githubusercontent.com/ahmetbalkan/story_editor_pro/main/story_editor_pro_gif.gif" width="280" alt="Story Editor Pro Demo"/>
 
 </td>
 <td>
