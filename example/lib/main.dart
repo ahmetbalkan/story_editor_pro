@@ -153,6 +153,11 @@ class MyApp extends StatelessWidget {
           ],
 
           // ─────────────────────────────────────────────────────────────
+          // Share button color (Share Screen)
+          // ─────────────────────────────────────────────────────────────
+          shareButtonColor: const Color(0xFF0095F6), // Instagram Blue
+
+          // ─────────────────────────────────────────────────────────────
           // Icons - All customizable icons
           // ─────────────────────────────────────────────────────────────
           icons: const StoryEditorIcons(

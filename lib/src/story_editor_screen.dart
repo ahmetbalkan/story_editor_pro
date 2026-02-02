@@ -969,7 +969,9 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     // Reset state
     _shareToStory = true;
     _shareToCloseFriends = false;
+    // Select all close friends by default
     _selectedCloseFriends.clear();
+    _selectedCloseFriends.addAll(widget.closeFriendsList);
 
     showModalBottomSheet(
       context: context,
@@ -1023,7 +1025,6 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                     setSheetState(() {
                       _shareToStory = true;
                       _shareToCloseFriends = false;
-                      _selectedCloseFriends.clear();
                     });
                   },
                   child: Padding(
@@ -1328,27 +1329,32 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                           );
                         }
                       : null,
-                  child: Container(
-                    width: double.infinity,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: _canShare()
-                          ? const Color(0xFF0095F6)
-                          : const Color(0xFF0095F6).withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _shareToCloseFriends && _selectedCloseFriends.isNotEmpty
-                            ? 'Share to ${_selectedCloseFriends.length} friends'
-                            : 'Share',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  child: Builder(
+                    builder: (context) {
+                      final shareColor = context.storyTheme.shareButtonColor;
+                      return Container(
+                        width: double.infinity,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: _canShare()
+                              ? shareColor
+                              : shareColor.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                    ),
+                        child: Center(
+                          child: Text(
+                            _shareToCloseFriends && _selectedCloseFriends.isNotEmpty
+                                ? 'Share to ${_selectedCloseFriends.length} friends'
+                                : 'Share',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

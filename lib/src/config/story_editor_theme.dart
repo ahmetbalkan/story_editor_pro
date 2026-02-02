@@ -58,6 +58,11 @@ class StoryEditorTheme {
   /// Gradient colors for boomerang button/indicator
   final List<Color> boomerangGradientColors;
 
+  // ============ Share Button ============
+
+  /// Share button color (default: Instagram blue #0095F6)
+  final Color shareButtonColor;
+
   // ============ Sub-configurations ============
 
   /// Icon configuration
@@ -107,6 +112,9 @@ class StoryEditorTheme {
       Color(0xFFC13584),
     ],
 
+    // Share Button
+    this.shareButtonColor = const Color(0xFF0095F6),
+
     // Sub-configurations
     this.icons = const StoryEditorIcons(),
     this.gradients = const StoryEditorGradients(),
@@ -128,6 +136,7 @@ class StoryEditorTheme {
     Color? successColor,
     List<Color>? drawingColors,
     List<Color>? boomerangGradientColors,
+    Color? shareButtonColor,
     StoryEditorIcons? icons,
     StoryEditorGradients? gradients,
   }) {
@@ -146,6 +155,7 @@ class StoryEditorTheme {
       successColor: successColor ?? this.successColor,
       drawingColors: drawingColors ?? this.drawingColors,
       boomerangGradientColors: boomerangGradientColors ?? this.boomerangGradientColors,
+      shareButtonColor: shareButtonColor ?? this.shareButtonColor,
       icons: icons ?? this.icons,
       gradients: gradients ?? this.gradients,
     );

@@ -274,6 +274,12 @@ StoryEditorTheme(
     Color(0xFFC13584),  // Dark pink
   ],
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // SHARE BUTTON COLOR
+  // Color for the share button in the share bottom sheet
+  // ═══════════════════════════════════════════════════════════════════════
+  shareButtonColor: Color(0xFF0095F6),  // Instagram blue
+
   // Icons and Gradients (see below)
   icons: StoryEditorIcons(...),
   gradients: StoryEditorGradients(...),
