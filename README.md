@@ -9,6 +9,15 @@ A powerful, fully customizable Instagram-style story editor for Flutter. Create 
 
 ## Features
 
+<table>
+<tr>
+<td width="300">
+
+<img src="https://raw.githubusercontent.com/ahmetbalkan/story_editor_pro/refs/heads/main/story_editor_pro_gif.gif" width="280" alt="Story Editor Pro Demo"/>
+
+</td>
+<td>
+
 | Feature | Description |
 |---------|-------------|
 | **Camera** | Full-featured camera with photo and video capture |
@@ -20,6 +29,10 @@ A powerful, fully customizable Instagram-style story editor for Flutter. Create 
 | **Gradient Editor** | Create gradient background stories with text |
 | **Close Friends** | Built-in close friends selection UI |
 | **Customizable** | Themes, icons, strings, fonts - everything is configurable |
+
+</td>
+</tr>
+</table>
 
 ## Installation
 
