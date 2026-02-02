@@ -1,3 +1,27 @@
+## 1.0.1
+
+### Added
+- `shareButtonColor` config in `StoryEditorTheme` for customizing share button color
+- `userProfileImageUrl` parameter for "Your Story" profile picture
+- Close button (X) in text editing mode to return to editor
+- All close friends are now selected by default in share modal
+
+### Fixed
+- Back button in drawing mode now returns to editor instead of camera
+- Text editing close button now properly closes the modal
+
+### Updated
+- Updated all dependencies to latest versions:
+  - `flutter_svg`: ^2.2.3
+  - `video_player`: ^2.10.1
+  - `path_provider`: ^2.1.5
+  - `camera`: ^0.11.3
+  - `permission_handler`: ^12.0.1
+  - `photo_manager`: ^3.8.3
+  - `shared_preferences`: ^2.5.4
+
+---
+
 ## 1.0.0
 
 Initial release with full feature set:
