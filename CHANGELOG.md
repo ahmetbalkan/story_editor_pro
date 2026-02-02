@@ -1,4 +1,4 @@
-## 1.0.2
+## 1.0.1
 
 ### Added
 - `shareButtonColor` config in `StoryEditorTheme` for customizing share button color
