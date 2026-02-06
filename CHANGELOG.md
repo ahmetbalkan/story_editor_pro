@@ -1,3 +1,32 @@
+## 1.0.2
+
+### Added
+- **Native video overlay export** - Video save/share now composites text, drawing, and image overlays directly onto video using native APIs (no FFmpeg dependency)
+  - Android: OpenGL/EGL GPU pipeline with `MediaCodec` + `MediaMuxer`
+  - iOS: `AVMutableComposition` + `AVVideoCompositionCoreAnimationTool` + `AVAssetExportSession`
+- `VideoOverlayExportService` - Flutter-to-native bridge for video overlay compositing
+- `TextureRenderer.kt` - Android EGL context and GLSL shader management for GPU-accelerated video processing
+- `VideoOverlayProcessor.kt` / `VideoOverlayProcessor.swift` - Native video+overlay compositing pipelines
+- Overlay-only `RepaintBoundary` (`_overlayRepaintKey`) for capturing transparent PNG overlays for video export
+- Saving/Sharing progress indicator overlay with localized text (`editorSaving` / `editorSharing` strings)
+- `_isSharing` flag to distinguish save vs share operations in UI
+- Remove background button in text overlay color picker (reset to no background)
+
+### Fixed
+- **Text overlays not visible in exported images** - Text overlays are now rendered inside `RepaintBoundary` for correct capture during save/share
+- **Drawing overlays rendering order** - Drawings now render on top of text and image overlays consistently
+- **Text overlay padding consistency** - Unified padding (`horizontal: 28, vertical: 16`) across editor preview, export, and text input modes
+- **Text overlay width calculation** - Consistent `maxWidth` calculation across all rendering contexts
+- **Interactive overlays blocked during export** - All gesture layers disabled when `_isSaving = true` to prevent modifications during export
+- **Drag-to-trash animation** - Export overlay now mirrors drag-to-trash scale/opacity animation for visual consistency
+
+### Changed
+- Adaptive `pixelRatio` for video overlay capture (clamped 1.0-2.0) instead of fixed 3.0 to optimize performance
+- Audio preserved via single-pass passthrough muxing (no temp file, no double I/O)
+- Overlay aspect ratio handling: cover+center crop to match video dimensions
+
+---
+
 ## 1.0.1
 
 ### Added

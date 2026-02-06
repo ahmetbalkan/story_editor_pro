@@ -38,7 +38,7 @@ A powerful, fully customizable Instagram-style story editor for Flutter. Create 
 
 ```yaml
 dependencies:
-  story_editor_pro: ^1.0.1
+  story_editor_pro: ^1.0.2
 ```
 
 ### Android Setup
@@ -214,6 +214,8 @@ StoryEditorStrings(
   editorYourStory: 'Your Story',                       // Your story share option
   editorFacebookStory: 'And Facebook Story',           // Facebook story option
   editorEnterText: 'Enter text...',                    // Text input placeholder
+  editorSaving: 'Saving...',                           // Saving progress indicator text
+  editorSharing: 'Sharing...',                         // Sharing progress indicator text
 
   // ═══════════════════════════════════════════════════════════════════════
   // BRUSH TYPE NAMES
@@ -682,9 +684,10 @@ This package uses minimal, well-maintained dependencies:
 | `shared_preferences` | User preferences |
 | `flutter_svg` | SVG icon support |
 
-**No FFmpeg!** Boomerang video processing is implemented natively:
-- **Android:** MediaCodec + MediaMuxer
-- **iOS:** AVAssetReader + AVAssetWriter
+**No FFmpeg!** All video processing is implemented natively:
+- **Boomerang:** Android `MediaCodec` + `MediaMuxer` / iOS `AVAssetReader` + `AVAssetWriter`
+- **Video overlay export:** Android OpenGL/EGL GPU pipeline / iOS `AVMutableComposition` + `AVAssetExportSession`
+- Text, drawing, and image overlays are composited directly onto video during save/share
 
 ## License
 
