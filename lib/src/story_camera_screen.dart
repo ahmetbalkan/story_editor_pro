@@ -3115,13 +3115,15 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildBoomerangButton(),
-                SizedBox(height: itemSpacing),
-                _buildCreateModeButton(),
-                SizedBox(height: itemSpacing),
-                _buildCollageButton(),
-                SizedBox(height: itemSpacing),
-                _buildHandsFreeButton(),
+                for (final item in [
+                  if (config.enableBoomerang) _buildBoomerangButton(),
+                  if (config.enableGradientTextEditor) _buildCreateModeButton(),
+                  if (config.enableCollage) _buildCollageButton(),
+                  if (config.enableHandsFree) _buildHandsFreeButton(),
+                ].asMap().entries) ...[
+                  if (item.key > 0) SizedBox(height: itemSpacing),
+                  item.value,
+                ],
               ],
             ),
           ),

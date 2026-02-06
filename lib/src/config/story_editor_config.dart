@@ -19,6 +19,20 @@ class StoryEditorConfig {
   /// Settings callbacks (replaces SharedPreferences)
   final StoryEditorSettings settings;
 
+  // ============ Feature Toggles ============
+
+  /// Enable boomerang mode button in camera toolbar (default: true)
+  final bool enableBoomerang;
+
+  /// Enable collage/layout mode button in camera toolbar (default: true)
+  final bool enableCollage;
+
+  /// Enable hands-free recording button in camera toolbar (default: true)
+  final bool enableHandsFree;
+
+  /// Enable gradient text editor button in camera toolbar (default: true)
+  final bool enableGradientTextEditor;
+
   // ============ Hands-Free Configuration ============
 
   /// Available delay options for hands-free mode (in seconds)
@@ -103,6 +117,10 @@ class StoryEditorConfig {
     this.theme = const StoryEditorTheme(),
     this.fonts = const StoryEditorFonts(),
     this.settings = const StoryEditorSettings(),
+    this.enableBoomerang = true,
+    this.enableCollage = true,
+    this.enableHandsFree = true,
+    this.enableGradientTextEditor = true,
     this.handsFreeDelayOptions = const [3, 5, 10, 15],
     this.defaultHandsFreeDelay = 3,
     this.maxHandsFreeRecordingSeconds = 60,
@@ -134,6 +152,10 @@ class StoryEditorConfig {
     StoryEditorTheme? theme,
     StoryEditorFonts? fonts,
     StoryEditorSettings? settings,
+    bool? enableBoomerang,
+    bool? enableCollage,
+    bool? enableHandsFree,
+    bool? enableGradientTextEditor,
     List<int>? handsFreeDelayOptions,
     int? defaultHandsFreeDelay,
     int? maxHandsFreeRecordingSeconds,
@@ -163,6 +185,10 @@ class StoryEditorConfig {
       theme: theme ?? this.theme,
       fonts: fonts ?? this.fonts,
       settings: settings ?? this.settings,
+      enableBoomerang: enableBoomerang ?? this.enableBoomerang,
+      enableCollage: enableCollage ?? this.enableCollage,
+      enableHandsFree: enableHandsFree ?? this.enableHandsFree,
+      enableGradientTextEditor: enableGradientTextEditor ?? this.enableGradientTextEditor,
       handsFreeDelayOptions: handsFreeDelayOptions ?? this.handsFreeDelayOptions,
       defaultHandsFreeDelay: defaultHandsFreeDelay ?? this.defaultHandsFreeDelay,
       maxHandsFreeRecordingSeconds: maxHandsFreeRecordingSeconds ?? this.maxHandsFreeRecordingSeconds,

@@ -38,7 +38,7 @@ A powerful, fully customizable Instagram-style story editor for Flutter. Create 
 
 ```yaml
 dependencies:
-  story_editor_pro: ^1.0.2
+  story_editor_pro: ^1.0.3
 ```
 
 ### Android Setup
@@ -531,6 +531,16 @@ StoryEditorGradients(
 
 ```dart
 StoryEditorConfig(
+  // ═══════════════════════════════════════════════════════════════════════
+  // FEATURE TOGGLES
+  // Enable/disable camera toolbar features (default: all true)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  enableBoomerang: true,           // Boomerang mode button
+  enableCollage: true,             // Collage/layout mode button
+  enableHandsFree: true,           // Hands-free recording button
+  enableGradientTextEditor: true,  // Gradient text editor button
+
   // ═══════════════════════════════════════════════════════════════════════
   // TIMING SETTINGS
   // ═══════════════════════════════════════════════════════════════════════

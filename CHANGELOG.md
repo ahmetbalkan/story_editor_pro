@@ -1,3 +1,15 @@
+## 1.0.3
+
+### Added
+- **Feature toggles** - Camera toolbar features can now be enabled/disabled via `StoryEditorConfig`:
+  - `enableBoomerang` - Boomerang mode button
+  - `enableCollage` - Collage/layout mode button
+  - `enableHandsFree` - Hands-free recording button
+  - `enableGradientTextEditor` - Gradient text editor button
+  - All default to `true` for backward compatibility
+
+---
+
 ## 1.0.2
 
 ### Added

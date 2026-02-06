@@ -350,6 +350,15 @@ class MyApp extends StatelessWidget {
         ),
 
         // ═══════════════════════════════════════════════════════════════
+        // FEATURE TOGGLES - Enable/disable camera toolbar features
+        // Set to false to hide the feature from the camera toolbar
+        // ═══════════════════════════════════════════════════════════════
+        enableBoomerang: true,
+        enableCollage: true,
+        enableHandsFree: true,
+        enableGradientTextEditor: true,
+
+        // ═══════════════════════════════════════════════════════════════
         // TIMING & LIMITS
         // ═══════════════════════════════════════════════════════════════
         handsFreeDelayOptions: const [3, 5, 10, 15],
