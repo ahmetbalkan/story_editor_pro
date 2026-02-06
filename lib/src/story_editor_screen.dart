@@ -299,6 +299,8 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                               ),
                             ),
                             if (!_isDrawing) ..._buildImageOverlays(),
+                            // Text overlays - MUST be inside RepaintBoundary for export
+                            if (!_isTextEditing && !_isDrawing) ..._buildTextOverlays(),
                           ],
                         ),
                       ),
@@ -307,8 +309,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                 ),
                 // Background image gesture handler - always active (works with two fingers)
                 _buildBackgroundImageGesture(),
-                // Text overlays
-                if (!_isTextEditing && !_isDrawing) ..._buildTextOverlays(),
+                // Drawing layer
                 if (_isDrawing) _buildDrawingLayer(),
                 if (!_isTextEditing && !_isDrawing) _buildTopControls(),
                 if (!_isTextEditing && !_isDrawing) _buildBottomControls(),
