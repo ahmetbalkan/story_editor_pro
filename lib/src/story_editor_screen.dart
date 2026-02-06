@@ -298,7 +298,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  // Wrap with SaveLayer so eraser blendMode.clear works
+                                  ..._buildImageOverlays(),
+                                  // Text overlays visual copy inside RepaintBoundary for export
+                                  if (!_isTextEditing) ..._buildTextOverlaysForExport(),
+                                  // Drawing on top of text/image overlays
                                   ClipRect(
                                     child: CustomPaint(
                                       painter: DrawingPainter(paths: _drawings),
@@ -307,9 +310,6 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                                       willChange: true,
                                     ),
                                   ),
-                                  if (!_isDrawing) ..._buildImageOverlays(),
-                                  // Text overlays visual copy inside RepaintBoundary for export
-                                  if (!_isTextEditing && !_isDrawing) ..._buildTextOverlaysForExport(),
                                 ],
                               ),
                             ),
@@ -323,9 +323,21 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                 if (!_isSaving) ...[
                   // Background image gesture handler - always active (works with two fingers)
                   _buildBackgroundImageGesture(),
-                  // Text overlays - interactive (with gestures), on top of background gesture
+                  // Text overlays - interactive (with gestures)
                   if (!_isTextEditing && !_isDrawing) ..._buildTextOverlays(),
-                  // Drawing layer
+                  // Drawing always rendered on top of text overlays (visual only, no gestures)
+                  if (!_isDrawing && _drawings.isNotEmpty)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: ClipRect(
+                          child: CustomPaint(
+                            painter: DrawingPainter(paths: _drawings),
+                            size: Size.infinite,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Drawing layer with gesture input (drawing mode only)
                   if (_isDrawing) _buildDrawingLayer(),
                   if (!_isTextEditing && !_isDrawing) _buildTopControls(),
                   if (!_isTextEditing && !_isDrawing) _buildBottomControls(),
@@ -734,15 +746,21 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   /// Text overlays for export (no gestures, inside RepaintBoundary)
   List<Widget> _buildTextOverlaysForExport() {
     return _textOverlays.asMap().entries.map((entry) {
+      final index = entry.key;
       final overlay = entry.value;
       final bool hasGradient = overlay.backgroundGradient != null;
+      final bool isDraggingThis = _isOverTrash && _draggingOverlayIndex == index && _draggingOverlayType == 'text';
 
       return Positioned(
         left: overlay.offset.dx,
         top: overlay.offset.dy,
         child: IgnorePointer(
-          child: Transform.scale(
-            scale: overlay.scale,
+          child: AnimatedScale(
+            scale: isDraggingThis ? overlay.scale * 0.5 : overlay.scale,
+            duration: const Duration(milliseconds: 150),
+            child: AnimatedOpacity(
+              opacity: isDraggingThis ? 0.5 : 1.0,
+              duration: const Duration(milliseconds: 150),
             child: hasGradient
                 ? Container(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -773,8 +791,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                 : Builder(
                     builder: (context) {
                       final textStyle = overlay.toTextStyle();
-                      final bgPadding = overlay.backgroundColor != null ? 40.0 : 0.0;
-                      final maxWidth = MediaQuery.of(context).size.width - 80 - bgPadding;
+                      final maxWidth = MediaQuery.of(context).size.width - 80 - 56.0;
                       final lines = _calculateTextLines(overlay.text, textStyle, maxWidth);
                       if (lines.isEmpty) {
                         lines.add(overlay.text);
@@ -789,9 +806,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                             offset: Offset(0, lineIndex * -6.0),
                             child: IntrinsicWidth(
                               child: Container(
-                                padding: overlay.backgroundColor != null
-                                    ? const EdgeInsets.symmetric(horizontal: 20, vertical: 4)
-                                    : EdgeInsets.zero,
+                                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                                 decoration: overlay.backgroundColor != null
                                     ? BoxDecoration(
                                         color: overlay.backgroundColor,
@@ -809,6 +824,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                       );
                     },
                   ),
+            ),
           ),
         ),
       );
@@ -930,10 +946,8 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                   builder: (context) {
                     final textStyle = overlay.toTextStyle();
 
-                    // Maximum width (screen width - padding)
-                    // If background exists, also subtract horizontal padding (20*2=40)
-                    final bgPadding = overlay.backgroundColor != null ? 40.0 : 0.0;
-                    final maxWidth = MediaQuery.of(context).size.width - 80 - bgPadding;
+                    // Maximum width (screen width - padding, always includes horizontal padding)
+                    final maxWidth = MediaQuery.of(context).size.width - 80 - 56.0;
 
                     // Calculate lines
                     final lines = _calculateTextLines(overlay.text, textStyle, maxWidth);
@@ -954,9 +968,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                           offset: Offset(0, lineIndex * -6.0), // Each line shifts 6px up
                           child: IntrinsicWidth(
                             child: Container(
-                              padding: overlay.backgroundColor != null
-                                  ? const EdgeInsets.symmetric(horizontal: 20, vertical: 4)
-                                  : EdgeInsets.zero,
+                              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                               decoration: overlay.backgroundColor != null
                                   ? BoxDecoration(
                                       color: overlay.backgroundColor,
@@ -2056,19 +2068,34 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                                     );
                                     final screenWidth = MediaQuery.of(context).size.width;
                                     final screenHeight = MediaQuery.of(context).size.height;
-                                    final maxWidth = screenWidth - 80;
-                                    final textPainter = TextPainter(
-                                      text: TextSpan(text: controller.text, style: actualTextStyle),
-                                      textDirection: TextDirection.ltr,
-                                      maxLines: null,
-                                    );
-                                    textPainter.layout(maxWidth: maxWidth);
 
-                                    // Account for padding (for text with background)
-                                    final horizontalPadding = hasBackground ? 20.0 * 2 : 0.0;
-                                    final verticalPadding = hasBackground ? 4.0 * 2 : 0.0;
-                                    final totalWidth = textPainter.width + horizontalPadding;
-                                    final totalHeight = textPainter.height + verticalPadding;
+                                    // Use same padding/maxWidth as overlay rendering (always same padding)
+                                    const hPad = 28.0;
+                                    const vPad = 16.0;
+                                    const bgPadCalc = 56.0;
+                                    final maxWidth = screenWidth - 80 - bgPadCalc;
+
+                                    // Calculate lines exactly as overlay renders them
+                                    final lines = _calculateTextLines(controller.text, actualTextStyle.copyWith(height: 1.1), maxWidth);
+                                    if (lines.isEmpty) lines.add(controller.text);
+
+                                    // Measure each line to find widest
+                                    double maxLineWidth = 0;
+                                    double totalTextHeight = 0;
+                                    for (final line in lines) {
+                                      final lp = TextPainter(
+                                        text: TextSpan(text: line.isEmpty ? ' ' : line, style: actualTextStyle.copyWith(height: 1.1)),
+                                        textDirection: TextDirection.ltr,
+                                        maxLines: 1,
+                                      );
+                                      lp.layout();
+                                      if (lp.width > maxLineWidth) maxLineWidth = lp.width;
+                                      totalTextHeight += lp.height + vPad * 2;
+                                    }
+                                    // Each line shifts -6px up (except first)
+                                    final lineOverlap = (lines.length - 1) * 6.0;
+                                    final totalHeight = totalTextHeight - lineOverlap;
+                                    final totalWidth = maxLineWidth + hPad * 2;
 
                                     // Position at exact center of screen
                                     final overlay = TextOverlay(
@@ -2134,9 +2161,8 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                             child: Center(
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  // If background exists, also subtract horizontal padding (20*2=40)
-                                  final bgPadding = hasBackground ? 40.0 : 0.0;
-                                  final maxWidth = constraints.maxWidth - 40 - bgPadding;
+                                  // Always use same padding for consistent layout
+                                  final maxWidth = constraints.maxWidth - 40 - 56.0;
                                   final text = controller.text;
 
                                   // Calculate lines - use the same method
@@ -2146,9 +2172,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                                   if (lines.isEmpty) {
                                     return IntrinsicWidth(
                                       child: Container(
-                                        padding: hasBackground
-                                            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 4)
-                                            : EdgeInsets.zero,
+                                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                                         decoration: hasBackground
                                             ? BoxDecoration(
                                                 color: backgroundColor,
@@ -2203,9 +2227,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                                             offset: Offset(0, idx * -6.0),
                                             child: IntrinsicWidth(
                                               child: Container(
-                                                padding: hasBackground
-                                                    ? const EdgeInsets.symmetric(horizontal: 20, vertical: 4)
-                                                    : EdgeInsets.zero,
+                                                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                                                 decoration: hasBackground
                                                     ? BoxDecoration(
                                                         color: backgroundColor,
@@ -2326,26 +2348,56 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                                     ? ListView(
                                         scrollDirection: Axis.horizontal,
                                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        children: _colors.map((color) => GestureDetector(
-                                          onTap: () {
-                                            setDialogState(() {
-                                              backgroundColor = color;
-                                            });
-                                          },
-                                          child: Container(
-                                            width: 36,
-                                            height: 36,
-                                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                                            decoration: BoxDecoration(
-                                              color: color,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: backgroundColor == color ? Colors.white : Colors.transparent,
-                                                width: 3,
+                                        children: [
+                                          // Remove background button
+                                          GestureDetector(
+                                            onTap: () {
+                                              setDialogState(() {
+                                                hasBackground = false;
+                                                openPicker = null;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 36,
+                                              height: 36,
+                                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: !hasBackground ? Colors.white : Colors.white54,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                              child: const Icon(
+                                                Icons.format_color_reset,
+                                                color: Colors.white,
+                                                size: 18,
                                               ),
                                             ),
                                           ),
-                                        )).toList(),
+                                          // Color options
+                                          ..._colors.map((color) => GestureDetector(
+                                            onTap: () {
+                                              setDialogState(() {
+                                                backgroundColor = color;
+                                                hasBackground = true;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 36,
+                                              height: 36,
+                                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: hasBackground && backgroundColor == color ? Colors.white : Colors.transparent,
+                                                  width: 3,
+                                                ),
+                                              ),
+                                            ),
+                                          )),
+                                        ],
                                       )
                                     // Font styles (from config)
                                     : ListView.builder(
@@ -2650,7 +2702,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
 
         return Center(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(16),
