@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:video_player/video_player.dart';
 import 'gradient_text_editor.dart';
+import 'video_overlay_export_service.dart';
 import 'models/story_result.dart';
 import 'config/story_editor_config.dart';
 
@@ -82,6 +83,7 @@ class StoryEditorScreen extends StatefulWidget {
 
 class _StoryEditorScreenState extends State<StoryEditorScreen> {
   final GlobalKey _repaintKey = GlobalKey();
+  final GlobalKey _overlayRepaintKey = GlobalKey();
   final List<TextOverlay> _textOverlays = [];
   final List<DrawingPath> _drawings = [];
   final List<ImageOverlay> _imageOverlays = [];
@@ -221,6 +223,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   Offset? _bgFocalPointStart;
 
   bool _isSaving = false;
+  bool _isSharing = false;
 
   final List<Color> _colors = [
     Colors.white,
@@ -275,7 +278,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                     children: [
                       // Black background
                       Container(color: Colors.black),
-                      // RepaintBoundary - for drawings and image overlays
+                      // RepaintBoundary - full frame capture (for image export)
                       RepaintBoundary(
                         key: _repaintKey,
                         child: Stack(
@@ -289,33 +292,73 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                                 child: _buildBackgroundMedia(),
                               ),
                             ),
-                            // Wrap with SaveLayer so eraser blendMode.clear works
-                            ClipRect(
-                              child: CustomPaint(
-                                painter: DrawingPainter(paths: _drawings),
-                                size: Size.infinite,
-                                isComplex: true,
-                                willChange: true,
+                            // Overlay-only RepaintBoundary (transparent, for video export)
+                            RepaintBoundary(
+                              key: _overlayRepaintKey,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  // Wrap with SaveLayer so eraser blendMode.clear works
+                                  ClipRect(
+                                    child: CustomPaint(
+                                      painter: DrawingPainter(paths: _drawings),
+                                      size: Size.infinite,
+                                      isComplex: true,
+                                      willChange: true,
+                                    ),
+                                  ),
+                                  if (!_isDrawing) ..._buildImageOverlays(),
+                                  // Text overlays visual copy inside RepaintBoundary for export
+                                  if (!_isTextEditing && !_isDrawing) ..._buildTextOverlaysForExport(),
+                                ],
                               ),
                             ),
-                            if (!_isDrawing) ..._buildImageOverlays(),
-                            // Text overlays - MUST be inside RepaintBoundary for export
-                            if (!_isTextEditing && !_isDrawing) ..._buildTextOverlays(),
                           ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                // Background image gesture handler - always active (works with two fingers)
-                _buildBackgroundImageGesture(),
-                // Drawing layer
-                if (_isDrawing) _buildDrawingLayer(),
-                if (!_isTextEditing && !_isDrawing) _buildTopControls(),
-                if (!_isTextEditing && !_isDrawing) _buildBottomControls(),
-                if (_isDrawing) _buildDrawingTools(),
-                if (_isDrawing) _buildDrawingTopBar(),
-                if (_isDrawing && _isSliding) _buildBrushSizePreview(),
+                // All interactive layers disabled during save/share
+                if (!_isSaving) ...[
+                  // Background image gesture handler - always active (works with two fingers)
+                  _buildBackgroundImageGesture(),
+                  // Text overlays - interactive (with gestures), on top of background gesture
+                  if (!_isTextEditing && !_isDrawing) ..._buildTextOverlays(),
+                  // Drawing layer
+                  if (_isDrawing) _buildDrawingLayer(),
+                  if (!_isTextEditing && !_isDrawing) _buildTopControls(),
+                  if (!_isTextEditing && !_isDrawing) _buildBottomControls(),
+                  if (_isDrawing) _buildDrawingTools(),
+                  if (_isDrawing) _buildDrawingTopBar(),
+                  if (_isDrawing && _isSliding) _buildBrushSizePreview(),
+                ],
+                // Saving/Sharing indicator overlay
+                if (_isSaving)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(color: Colors.white),
+                            const SizedBox(height: 16),
+                            Text(
+                              _isSharing
+                                  ? context.storyEditorConfig.strings.editorSharing
+                                  : context.storyEditorConfig.strings.editorSaving,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -586,6 +629,37 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     );
   }
 
+  /// Capture only overlay layers (text, drawing, images) as transparent PNG
+  /// Uses optimal pixelRatio based on video resolution to avoid huge images
+  Future<Uint8List?> _captureOverlayAsPng() async {
+    try {
+      final boundary = _overlayRepaintKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      // Calculate optimal pixelRatio based on video resolution
+      double pixelRatio = 1.0;
+      if (_mediaType == MediaType.video && _videoController != null && _videoController!.value.isInitialized) {
+        final videoSize = _videoController!.value.size;
+        final boundarySize = boundary.size;
+        if (boundarySize.width > 0) {
+          // Match overlay resolution to video's longest dimension
+          pixelRatio = (videoSize.width / boundarySize.width)
+              .clamp(1.0, 2.0); // Cap at 2.0 - video doesn't need 3x
+        }
+      } else {
+        pixelRatio = 3.0; // Keep high quality for images
+      }
+
+      final image = await boundary.toImage(pixelRatio: pixelRatio);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('VideoOverlayProcessor: Overlay capture error: $e');
+      return null;
+    }
+  }
+
   /// Create PNG image with gradient background + centered text
   Future<String?> _createGradientTextImage(String text, LinearGradient gradient) async {
     try {
@@ -655,6 +729,90 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       debugPrint('Create gradient text image error: $e');
       return null;
     }
+  }
+
+  /// Text overlays for export (no gestures, inside RepaintBoundary)
+  List<Widget> _buildTextOverlaysForExport() {
+    return _textOverlays.asMap().entries.map((entry) {
+      final overlay = entry.value;
+      final bool hasGradient = overlay.backgroundGradient != null;
+
+      return Positioned(
+        left: overlay.offset.dx,
+        top: overlay.offset.dy,
+        child: IgnorePointer(
+          child: Transform.scale(
+            scale: overlay.scale,
+            child: hasGradient
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: overlay.backgroundGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      overlay.text,
+                      style: overlay.toTextStyle(
+                        shadows: [
+                          const Shadow(
+                            color: Colors.black38,
+                            offset: Offset(1, 1),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Builder(
+                    builder: (context) {
+                      final textStyle = overlay.toTextStyle();
+                      final bgPadding = overlay.backgroundColor != null ? 40.0 : 0.0;
+                      final maxWidth = MediaQuery.of(context).size.width - 80 - bgPadding;
+                      final lines = _calculateTextLines(overlay.text, textStyle, maxWidth);
+                      if (lines.isEmpty) {
+                        lines.add(overlay.text);
+                      }
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: lines.asMap().entries.map((lineEntry) {
+                          final lineIndex = lineEntry.key;
+                          final line = lineEntry.value;
+                          return Transform.translate(
+                            offset: Offset(0, lineIndex * -6.0),
+                            child: IntrinsicWidth(
+                              child: Container(
+                                padding: overlay.backgroundColor != null
+                                    ? const EdgeInsets.symmetric(horizontal: 20, vertical: 4)
+                                    : EdgeInsets.zero,
+                                decoration: overlay.backgroundColor != null
+                                    ? BoxDecoration(
+                                        color: overlay.backgroundColor,
+                                        borderRadius: BorderRadius.circular(25),
+                                      )
+                                    : null,
+                                child: Text(
+                                  line.isEmpty ? ' ' : line,
+                                  style: textStyle.copyWith(height: 1.1),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   List<Widget> _buildTextOverlays() {
@@ -2381,36 +2539,64 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
 
   /// Save to gallery
   Future<void> _saveToGallery() async {
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _isSharing = false;
+    });
 
     try {
-      final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) throw Exception('Render boundary not found');
+      if (_mediaType == MediaType.video) {
+        // VIDEO: Briefly pause to capture overlay, then resume playback
+        final stopwatch = Stopwatch()..start();
+        _videoController?.pause();
+        final overlayPng = await _captureOverlayAsPng();
+        debugPrint('VideoOverlayProcessor: Overlay capture: ${stopwatch.elapsedMilliseconds}ms');
+        _videoController?.play(); // Resume immediately after capture
 
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) throw Exception('Failed to convert image');
+        if (overlayPng == null) throw Exception('Failed to capture overlay');
 
-      final Uint8List pngBytes = byteData.buffer.asUint8List();
+        // Export runs in background on native side
+        final exportedPath = await VideoOverlayExportService.exportVideoWithOverlay(
+          videoPath: widget.mediaPath,
+          overlayPngBytes: overlayPng,
+        );
+        debugPrint('VideoOverlayProcessor: Total export: ${stopwatch.elapsedMilliseconds}ms');
+        if (exportedPath == null) throw Exception('Video export failed');
 
-      // Save to temp file
-      final tempDir = Directory.systemTemp;
-      final fileName = 'story_edited_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File('${tempDir.path}/$fileName');
-      await file.writeAsBytes(pngBytes);
+        // Save video to gallery
+        await PhotoManager.editor.saveVideo(
+          File(exportedPath),
+          title: 'story_edited_${DateTime.now().millisecondsSinceEpoch}.mp4',
+        );
+      } else {
+        // IMAGE: Existing logic
+        final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (boundary == null) throw Exception('Render boundary not found');
 
-      // Save to gallery
-      await PhotoManager.editor.saveImageWithPath(
-        file.path,
-        title: fileName,
-      );
+        final image = await boundary.toImage(pixelRatio: 3.0);
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData == null) throw Exception('Failed to convert image');
+
+        final Uint8List pngBytes = byteData.buffer.asUint8List();
+
+        final tempDir = Directory.systemTemp;
+        final fileName = 'story_edited_${DateTime.now().millisecondsSinceEpoch}.png';
+        final file = File('${tempDir.path}/$fileName');
+        await file.writeAsBytes(pngBytes);
+
+        await PhotoManager.editor.saveImageWithPath(
+          file.path,
+          title: fileName,
+        );
+      }
 
       if (mounted) {
         _showSavedModal();
       }
     } catch (e) {
-      debugPrint('Save to gallery error: $e');
+      debugPrint('VideoOverlayProcessor: Save to gallery error: $e');
       if (mounted) {
+        if (_mediaType == MediaType.video) _videoController?.play();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not save to gallery: $e')),
         );
@@ -2418,7 +2604,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     }
 
     if (mounted) {
-      setState(() => _isSaving = false);
+      setState(() {
+        _isSaving = false;
+        _isSharing = false;
+      });
     }
   }
 
@@ -2497,42 +2686,73 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     bool closeFriends = false,
     List<CloseFriend> selectedFriends = const [],
   }) async {
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _isSharing = true;
+    });
 
     try {
-      final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) throw Exception('Render boundary not found');
+      String filePath;
+      StoryMediaType resultMediaType;
 
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) throw Exception('Failed to convert image');
+      if (_mediaType == MediaType.video) {
+        // VIDEO: Pause video briefly to capture overlay, then resume
+        final stopwatch = Stopwatch()..start();
+        _videoController?.pause();
 
-      final pngBytes = byteData.buffer.asUint8List();
-      final tempDir = Directory.systemTemp;
-      final fileName = 'story_edited_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File('${tempDir.path}/$fileName');
-      await file.writeAsBytes(pngBytes);
+        final overlayPng = await _captureOverlayAsPng();
+        debugPrint('VideoOverlayProcessor: Overlay capture: ${stopwatch.elapsedMilliseconds}ms');
+        _videoController?.play(); // Resume immediately after capture
+
+        if (overlayPng == null) throw Exception('Failed to capture overlay');
+
+        final exportedPath = await VideoOverlayExportService.exportVideoWithOverlay(
+          videoPath: widget.mediaPath,
+          overlayPngBytes: overlayPng,
+        );
+        debugPrint('VideoOverlayProcessor: Total export: ${stopwatch.elapsedMilliseconds}ms');
+        if (exportedPath == null) throw Exception('Video export failed');
+
+        filePath = exportedPath;
+        resultMediaType = StoryMediaType.video;
+      } else {
+        // IMAGE: Existing logic
+        final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (boundary == null) throw Exception('Render boundary not found');
+
+        final image = await boundary.toImage(pixelRatio: 3.0);
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData == null) throw Exception('Failed to convert image');
+
+        final pngBytes = byteData.buffer.asUint8List();
+        final tempDir = Directory.systemTemp;
+        final fileName = 'story_edited_${DateTime.now().millisecondsSinceEpoch}.png';
+        final file = File('${tempDir.path}/$fileName');
+        await file.writeAsBytes(pngBytes);
+
+        filePath = file.path;
+        resultMediaType = StoryMediaType.image;
+      }
 
       if (mounted) {
-        // Create StoryResult
         final storyResult = await StoryResult.fromFile(
-          file.path,
-          mediaType: StoryMediaType.image,
+          filePath,
+          mediaType: resultMediaType,
+          durationMs: _mediaType == MediaType.video
+              ? _videoController?.value.duration.inMilliseconds
+              : null,
         );
 
-        // Create StoryShareResult
         final shareResult = StoryShareResult(
           story: storyResult,
           shareTarget: closeFriends ? ShareTarget.closeFriends : ShareTarget.story,
           selectedFriends: selectedFriends,
         );
 
-        // Call onShare callback if provided
         widget.onShare?.call(shareResult);
 
-        // Return share result (backwards compatible map format)
         Navigator.pop(context, {
-          'path': file.path,
+          'path': filePath,
           'toStory': toStory,
           'closeFriends': closeFriends,
           'selectedFriends': selectedFriends.map((f) => f.toJson()).toList(),
@@ -2540,8 +2760,9 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Save error: $e');
+      debugPrint('VideoOverlayProcessor: Save error: $e');
       if (mounted) {
+        if (_mediaType == MediaType.video) _videoController?.play();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not save: $e')),
         );
@@ -2549,7 +2770,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     }
 
     if (mounted) {
-      setState(() => _isSaving = false);
+      setState(() {
+        _isSaving = false;
+        _isSharing = false;
+      });
     }
   }
 }

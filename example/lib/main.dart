@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:story_editor_pro/story_editor_pro.dart';
+import 'package:video_player/video_player.dart';
 
 void main() {
   runApp(const MyApp());
@@ -379,19 +380,56 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String? _capturedImagePath;
+  String? _capturedMediaPath;
+  StoryMediaType? _capturedMediaType;
+  VideoPlayerController? _videoController;
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  void _setPreviewMedia(String path, StoryMediaType type) {
+    _videoController?.dispose();
+    _videoController = null;
+
+    setState(() {
+      _capturedMediaPath = path;
+      _capturedMediaType = type;
+    });
+
+    if (type == StoryMediaType.video) {
+      _videoController = VideoPlayerController.file(File(path))
+        ..initialize().then((_) {
+          setState(() {});
+          _videoController?.setLooping(true);
+          _videoController?.play();
+        });
+    }
+  }
+
+  void _clearPreview() {
+    _videoController?.dispose();
+    _videoController = null;
+    setState(() {
+      _capturedMediaPath = null;
+      _capturedMediaType = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Eğer fotoğraf varsa tam ekranda göster
-    if (_capturedImagePath != null) {
-      return _buildImagePreview();
+    if (_capturedMediaPath != null) {
+      return _buildMediaPreview();
     }
 
     return _buildHomeContent();
   }
 
-  Widget _buildImagePreview() {
+  Widget _buildMediaPreview() {
+    final isVideo = _capturedMediaType == StoryMediaType.video;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -403,22 +441,21 @@ class _HomePageState extends State<HomePage> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Fotoğraf tam ekran
-            Image.file(File(_capturedImagePath!), fit: BoxFit.contain),
-            // Üst kısımda çarpı butonu
+            // Media content
+            if (isVideo)
+              _buildVideoPreview()
+            else
+              Image.file(File(_capturedMediaPath!), fit: BoxFit.contain),
+            // Close button
             Positioned(
               top: MediaQuery.of(context).padding.top + 16,
               left: 16,
               child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _capturedImagePath = null;
-                  });
-                },
+                onTap: _clearPreview,
                 child: Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
@@ -426,7 +463,28 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            // Alt kısımda Story Editor'a git butonu
+            // Media type badge
+            if (isVideo)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.videocam, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text('Video', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+            // Open camera button
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 32,
               left: 0,
@@ -451,6 +509,32 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview() {
+    if (_videoController == null || !_videoController!.value.isInitialized) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_videoController!.value.isPlaying) {
+            _videoController!.pause();
+          } else {
+            _videoController!.play();
+          }
+        });
+      },
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: _videoController!.value.aspectRatio,
+          child: VideoPlayer(_videoController!),
         ),
       ),
     );
@@ -579,12 +663,11 @@ class _HomePageState extends State<HomePage> {
             }
             debugPrint('═══════════════════════════════════════');
 
-            // Fotoğrafı kaydet ve ekranda göster
-            final imagePath = shareResult.story.filePath;
+            // Save and show preview
+            final mediaPath = shareResult.story.filePath;
+            final mediaType = shareResult.story.mediaType;
             Navigator.pop(context);
-            setState(() {
-              _capturedImagePath = imagePath;
-            });
+            _setPreviewMedia(mediaPath, mediaType);
           },
         ),
       ),

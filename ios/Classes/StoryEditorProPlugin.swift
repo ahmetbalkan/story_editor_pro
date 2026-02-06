@@ -17,6 +17,7 @@ public class StoryEditorProPlugin: NSObject, FlutterPlugin {
     }
 
     private var boomerangProcessor: BoomerangProcessor?
+    private var videoOverlayProcessor: VideoOverlayProcessor?
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
@@ -50,10 +51,42 @@ public class StoryEditorProPlugin: NSObject, FlutterPlugin {
             createBoomerang(call: call, result: result)
         case "createBoomerangFromFrames":
             createBoomerangFromFrames(call: call, result: result)
+        case "exportVideoWithOverlay":
+            exportVideoWithOverlay(call: call, result: result)
         case "dispose":
             dispose(result: result)
         default:
             result(FlutterMethodNotImplemented)
+        }
+    }
+
+    private func exportVideoWithOverlay(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let videoPath = args["videoPath"] as? String,
+              let overlayImagePath = args["overlayImagePath"] as? String,
+              let outputPath = args["outputPath"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS",
+                   message: "videoPath, overlayImagePath and outputPath are required",
+                   details: nil))
+            return
+        }
+
+        if videoOverlayProcessor == nil {
+            videoOverlayProcessor = VideoOverlayProcessor()
+        }
+
+        videoOverlayProcessor?.exportVideoWithOverlay(
+            videoPath: videoPath,
+            overlayImagePath: overlayImagePath,
+            outputPath: outputPath
+        ) { output in
+            if let output = output {
+                result(output)
+            } else {
+                result(FlutterError(code: "EXPORT_FAILED",
+                       message: "Failed to export video with overlay",
+                       details: nil))
+            }
         }
     }
 

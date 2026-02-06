@@ -11,6 +11,7 @@ export 'src/advanced_boomerang_service.dart';
 export 'src/native_boomerang_service.dart';
 export 'src/flutter_camera_controller.dart';
 export 'src/flutter_camera_preview.dart';
+export 'src/video_overlay_export_service.dart';
 
 // Configuration
 export 'src/config/story_editor_config.dart';

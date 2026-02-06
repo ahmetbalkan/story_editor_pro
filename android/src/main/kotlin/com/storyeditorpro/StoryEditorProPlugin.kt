@@ -77,6 +77,7 @@ class StoryEditorProPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "stopVideoRecording" -> stopVideoRecording(result)
             "createBoomerang" -> createBoomerang(call, result)
             "createBoomerangFromFrames" -> createBoomerangFromFrames(call, result)
+            "exportVideoWithOverlay" -> exportVideoWithOverlay(call, result)
             "dispose" -> dispose(result)
             else -> result.notImplemented()
         }
@@ -442,6 +443,43 @@ class StoryEditorProPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val level = call.argument<Double>("level") ?: 1.0
         camera?.cameraControl?.setZoomRatio(level.toFloat())
         result.success(true)
+    }
+
+    private fun exportVideoWithOverlay(call: MethodCall, result: Result) {
+        val videoPath = call.argument<String>("videoPath")
+        val overlayImagePath = call.argument<String>("overlayImagePath")
+        val outputPath = call.argument<String>("outputPath")
+
+        if (videoPath == null || overlayImagePath == null || outputPath == null) {
+            result.error("INVALID_ARGS",
+                "videoPath, overlayImagePath and outputPath are required", null)
+            return
+        }
+
+        // Use a dedicated thread (cameraExecutor may be null if camera is disposed)
+        Thread {
+            try {
+                val processor = VideoOverlayProcessor()
+                val output = processor.exportVideoWithOverlay(
+                    videoPath = videoPath,
+                    overlayImagePath = overlayImagePath,
+                    outputPath = outputPath
+                )
+
+                activity?.runOnUiThread {
+                    if (output != null) {
+                        result.success(output)
+                    } else {
+                        result.error("EXPORT_FAILED",
+                            "Failed to export video with overlay", null)
+                    }
+                }
+            } catch (e: Exception) {
+                activity?.runOnUiThread {
+                    result.error("EXPORT_ERROR", e.message, null)
+                }
+            }
+        }.start()
     }
 
     private var videoResultCallback: Result? = null
